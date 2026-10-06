@@ -3,8 +3,8 @@
 -- ==============================================================================
 
 -- 1. Parâmetros Padrão
-INSERT INTO public.parametros (kg_caixa, enxarque_kg, aliquota_imposto)
-VALUES (16.0, 1.0, 0.0)
+INSERT INTO public.parametros (kg_caixa, enxarque_kg)
+VALUES (16.0, 1.0)
 ON CONFLICT DO NOTHING;
 
 -- 2. Cargas Iniciais
