@@ -2,8 +2,18 @@ import { createClient } from '@supabase/supabase-js';
 import { Lote, CifLancamento, Parametros } from '../types';
 import { DADOS_INICIAIS, PARAMETROS_PADRAO } from './mockData';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const DEFAULT_SUPABASE_URL = 'https://snxwgmgrdzcgtefmkqel.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueHdnbWdyZHpjZ3RlZm1rcWVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMzk4OTYsImV4cCI6MjEwNjgxNTg5Nn0.rERM_vjFGMRWMBmO93aKq2LWvpA9M5q9CAnSlBZ2_C0';
+
+const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Ignora automaticamente o projeto antigo desativado (mewenajmiugrsicirdgn) caso ainda esteja nas variáveis da Vercel
+const usarDefault = !envUrl || envUrl.includes('mewenajmiugrsicirdgn') || envUrl === 'https://sua-url-aqui.supabase.co';
+
+const supabaseUrl = usarDefault ? DEFAULT_SUPABASE_URL : envUrl;
+const supabaseAnonKey = usarDefault ? DEFAULT_SUPABASE_ANON_KEY : envKey;
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl && 
