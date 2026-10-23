@@ -16,6 +16,7 @@ import {
   removerCifDb,
   salvarParametrosDb,
   sincronizarComSupabase,
+  marcarSincronizacaoPendente,
   isSupabaseConfigured,
   supabase
 } from './lib/supabase';
@@ -134,13 +135,18 @@ export function App() {
 
     setIsSyncing(true);
     let loteSalvo = lote;
+    let salvouNuvem = false;
+
     if (isSupabaseConfigured) {
       try {
         loteSalvo = await salvarLoteDb(lote);
+        salvouNuvem = true;
+        setFonte('supabase');
+        marcarSincronizacaoPendente(false);
       } catch (err: any) {
-        setIsSyncing(false);
-        console.error('Erro ao salvar lote no Supabase:', err);
-        return 'Erro ao gravar no banco: ' + (err.message || 'Falha de conexão com a nuvem');
+        console.warn('Banco em repouso/offline, salvando localmente com fila de sincronização:', err);
+        setFonte('local');
+        marcarSincronizacaoPendente(true);
       }
     }
 
@@ -155,39 +161,50 @@ export function App() {
     setLotes(novosLotes);
     salvarDadosLocal(novosLotes, cif, parametros);
     setIsSyncing(false);
-    mostrarToast(`Lote ${loteSalvo.lote} da Carga ${loteSalvo.carga} salvo na nuvem!`);
+    mostrarToast(
+      salvouNuvem
+        ? `Lote ${loteSalvo.lote} da Carga ${loteSalvo.carga} salvo na nuvem!`
+        : `Lote ${loteSalvo.lote} salvo! Sincronizará na nuvem assim que o banco responder.`
+    );
   };
 
   const handleRemoverLote = async (index: number): Promise<void> => {
     const loteParaRemover = lotes[index];
+    const novosLotes = lotes.filter((_, i) => i !== index);
+    setLotes(novosLotes);
+    salvarDadosLocal(novosLotes, cif, parametros);
+
     setIsSyncing(true);
     if (isSupabaseConfigured && loteParaRemover) {
       try {
         await removerLoteDb(loteParaRemover);
+        setFonte('supabase');
       } catch (err: any) {
-        console.error('Erro ao remover lote do Supabase:', err);
-        mostrarToast('Erro ao remover lote no banco: ' + err.message, 'erro');
+        console.warn('Erro ao remover lote do Supabase (modo offline):', err);
+        setFonte('local');
+        marcarSincronizacaoPendente(true);
       }
     }
-
-    const novosLotes = lotes.filter((_, i) => i !== index);
-    setLotes(novosLotes);
-    salvarDadosLocal(novosLotes, cif, parametros);
     setIsSyncing(false);
-    mostrarToast('Lote excluído da nuvem!');
+    mostrarToast('Lote excluído com sucesso!');
   };
 
   // Funções de CRUD: CIF
   const handleSalvarCif = async (itemCif: CifLancamento, index?: number): Promise<string | void> => {
     setIsSyncing(true);
     let cifSalvo = itemCif;
+    let salvouNuvem = false;
+
     if (isSupabaseConfigured) {
       try {
         cifSalvo = await salvarCifDb(itemCif);
+        salvouNuvem = true;
+        setFonte('supabase');
+        marcarSincronizacaoPendente(false);
       } catch (err: any) {
-        setIsSyncing(false);
-        console.error('Erro ao salvar CIF no Supabase:', err);
-        return 'Erro ao gravar lançamento no banco: ' + (err.message || 'Falha de conexão com a nuvem');
+        console.warn('Banco em repouso/offline, salvando CIF localmente:', err);
+        setFonte('local');
+        marcarSincronizacaoPendente(true);
       }
     }
 
@@ -202,26 +219,32 @@ export function App() {
     setCif(novosCif);
     salvarDadosLocal(lotes, novosCif, parametros);
     setIsSyncing(false);
-    mostrarToast(`Lançamento "${cifSalvo.tipo}" salvo na nuvem!`);
+    mostrarToast(
+      salvouNuvem
+        ? `Lançamento "${cifSalvo.tipo}" salvo na nuvem!`
+        : `Lançamento "${cifSalvo.tipo}" salvo! Sincronizará na nuvem assim que o banco responder.`
+    );
   };
 
   const handleRemoverCif = async (index: number): Promise<void> => {
     const cifParaRemover = cif[index];
+    const novosCif = cif.filter((_, i) => i !== index);
+    setCif(novosCif);
+    salvarDadosLocal(lotes, novosCif, parametros);
+
     setIsSyncing(true);
     if (isSupabaseConfigured && cifParaRemover) {
       try {
         await removerCifDb(cifParaRemover);
+        setFonte('supabase');
       } catch (err: any) {
-        console.error('Erro ao remover CIF do Supabase:', err);
-        mostrarToast('Erro ao remover lançamento no banco: ' + err.message, 'erro');
+        console.warn('Erro ao remover CIF do Supabase (modo offline):', err);
+        setFonte('local');
+        marcarSincronizacaoPendente(true);
       }
     }
-
-    const novosCif = cif.filter((_, i) => i !== index);
-    setCif(novosCif);
-    salvarDadosLocal(lotes, novosCif, parametros);
     setIsSyncing(false);
-    mostrarToast('Lançamento excluído da nuvem!');
+    mostrarToast('Lançamento excluído com sucesso!');
   };
 
   const handleAtualizarParametros = async (novos: Partial<Parametros>) => {
@@ -233,9 +256,13 @@ export function App() {
       setIsSyncing(true);
       try {
         await salvarParametrosDb(atualizados);
+        setFonte('supabase');
         mostrarToast('Parâmetros atualizados na nuvem!');
       } catch (err: any) {
-        console.error('Erro ao salvar parâmetros no Supabase:', err);
+        console.warn('Erro ao salvar parâmetros no Supabase:', err);
+        setFonte('local');
+        marcarSincronizacaoPendente(true);
+        mostrarToast('Parâmetros salvos! Sincronizarão quando o banco reconectar.');
       } finally {
         setIsSyncing(false);
       }

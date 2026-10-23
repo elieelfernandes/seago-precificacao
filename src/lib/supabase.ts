@@ -16,6 +16,25 @@ export const supabase = isSupabaseConfigured
   : null;
 
 const STORAGE_KEY = 'seago-dados-v2';
+const PENDING_SYNC_KEY = 'seago-pending-sync';
+
+export function marcarSincronizacaoPendente(pendente: boolean): void {
+  try {
+    if (pendente) {
+      localStorage.setItem(PENDING_SYNC_KEY, 'true');
+    } else {
+      localStorage.removeItem(PENDING_SYNC_KEY);
+    }
+  } catch (e) {}
+}
+
+export function temSincronizacaoPendente(): boolean {
+  try {
+    return localStorage.getItem(PENDING_SYNC_KEY) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
 
 // Garante que a carga existe no Supabase e retorna seu ID atualizado
 export async function obterOuCriarCargaId(numeroCarga: number, dataOperacao?: string): Promise<string> {
@@ -151,7 +170,57 @@ export async function carregarDados(): Promise<{
         atualizadoEm: paramData.updated_at
       } : { ...PARAMETROS_PADRAO, porCarga: porCargaSalvo };
 
+      if (errCargas || errLotes || errCif) {
+        throw new Error(
+          errCargas?.message || errLotes?.message || errCif?.message || 'Erro de leitura no Supabase'
+        );
+      }
+
       if (lotes.length > 0 || cif.length > 0) {
+        // Verifica se há dados locais pendentes ou Cargas novas no navegador (ex: Carga 7 preenchida antes da migração ou offline)
+        try {
+          const rawLocal = localStorage.getItem(STORAGE_KEY);
+          if (rawLocal) {
+            const parsed = JSON.parse(rawLocal);
+            const localLotes: Lote[] = Array.isArray(parsed.lotes) ? parsed.lotes : [];
+            const localCif: CifLancamento[] = Array.isArray(parsed.cif) ? parsed.cif : [];
+
+            if (temSincronizacaoPendente() && (localLotes.length > 0 || localCif.length > 0)) {
+              const localParam: Parametros = parsed.parametros || parametros;
+              await sincronizarComSupabase(localLotes, localCif, localParam);
+              marcarSincronizacaoPendente(false);
+              salvarDadosLocal(localLotes, localCif, localParam);
+              return { lotes: localLotes, cif: localCif, parametros: localParam, fonte: 'supabase' };
+            }
+
+            // Resgate automático de cargas locais que ainda não subiram pro banco (ex: Carga 7 no navegador do cliente)
+            const cargasNoBanco = new Set(cargasData?.map(c => Number(c.numero)) || []);
+            const lotesFaltantes = localLotes.filter(l => !cargasNoBanco.has(Number(l.carga)));
+            const cifFaltantes = localCif.filter(c => !cargasNoBanco.has(Number(c.carga)));
+
+            if (lotesFaltantes.length > 0 || cifFaltantes.length > 0) {
+              for (const lf of lotesFaltantes) {
+                try {
+                  const salvo = await salvarLoteDb(lf);
+                  lotes.push(salvo);
+                } catch (e) {
+                  lotes.push(lf);
+                }
+              }
+              for (const cf of cifFaltantes) {
+                try {
+                  const salvo = await salvarCifDb(cf);
+                  cif.push(salvo);
+                } catch (e) {
+                  cif.push(cf);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Aviso ao mesclar cache local:', e);
+        }
+
         // Atualiza cache local de segurança
         salvarDadosLocal(lotes, cif, parametros);
         return { lotes, cif, parametros, fonte: 'supabase' };

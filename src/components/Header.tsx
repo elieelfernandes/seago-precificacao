@@ -44,16 +44,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0B6E78]" />
                 <span>Salvando na nuvem...</span>
               </div>
-            ) : isSupabaseConfigured ? (
+            ) : fonte === 'supabase' && isSupabaseConfigured ? (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#DBEDEE] text-[#0B6E78] border border-[#0B6E78]/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 <Database className="w-3.5 h-3.5 text-[#0B6E78]" />
                 <span>Online · Nuvem Ativa</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="Modo local">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="Operando em modo local de segurança. Sincronizará automaticamente quando o banco reconectar.">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                <span>Armazenamento Local</span>
+                <span>Modo Local · Auto-Sync</span>
               </div>
             )}
           </div>

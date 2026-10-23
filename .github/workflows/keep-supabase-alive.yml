@@ -1,0 +1,26 @@
+name: Keep Supabase Database Active
+
+on:
+  schedule:
+    # Executa automaticamente a cada 3 dias às 12:00 UTC (09:00 BRT) para evitar pausa por inatividade no plano gratuito
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          SUPABASE_URL="https://snxwgmgrdzcgtefmkqel.supabase.co"
+          SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueHdnbWdyZHpjZ3RlZm1rcWVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMzk4OTYsImV4cCI6MjEwNjgxNTg5Nn0.rERM_vjFGMRWMBmO93aKq2LWvpA9M5q9CAnSlBZ2_C0"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SUPABASE_URL}/rest/v1/parametros?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}")
+          echo "Supabase HTTP Status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
+            echo "✅ Banco de dados ativo e respondendo!"
+          else
+            echo "⚠️ Banco respondeu com status $STATUS"
+            exit 1
+          fi
