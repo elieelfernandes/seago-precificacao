@@ -700,7 +700,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
 
           <div>
             <label className="block text-[11px] font-semibold uppercase text-[#9A6410] mb-1">
-              Custo de Capital (% a.m.)
+              Custo de Antecipação (% a.m.)
             </label>
             <div className="relative">
               <input
@@ -710,7 +710,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
                 value={custoCapitalMensalPct}
                 onChange={(e) => handleChangeCustoCapitalPct(Number(e.target.value) || 0)}
                 className="w-full pr-12 p-2.5 border-2 border-[#9A6410]/40 rounded-lg text-sm font-mono font-bold text-[#9A6410] bg-amber-50/30 focus:outline-none focus:border-[#9A6410]"
-                title="Taxa mensal de custo de capital / antecipação para venda a prazo"
+                title="Taxa mensal de custo de antecipação para venda a prazo"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono font-semibold text-[#9A6410]">
                 % a.m.
@@ -852,7 +852,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
               <div className="flex items-center justify-between gap-2 bg-amber-50/80 border border-[#9A6410]/25 rounded-lg px-2.5 py-1.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[#9A6410] font-semibold">
-                    (−) Desconto Financeiro (Custo Capital):
+                    (−) Desconto Financeiro (Custo de Antecipação):
                   </span>
                   <div className="inline-flex items-center gap-1">
                     <input
@@ -862,7 +862,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
                       value={custoCapitalMensalPct}
                       onChange={(e) => handleChangeCustoCapitalPct(Number(e.target.value) || 0)}
                       className="w-14 px-1.5 py-0.5 bg-white border border-[#9A6410]/40 rounded text-right font-mono text-xs font-bold text-[#9A6410] focus:outline-none"
-                      title="Taxa de custo de capital (% ao mês)"
+                      title="Taxa de custo de antecipação (% ao mês)"
                     />
                     <span className="text-[11px] font-mono text-[#9A6410]">% a.m.</span>
                   </div>
@@ -876,7 +876,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
                     value={descontoFinanceiro}
                     onChange={(e) => handleChangeDescontoFinanceiroRs(Number(e.target.value) || 0)}
                     className="w-24 px-1.5 py-0.5 bg-white border border-[#A9382A]/30 rounded text-right font-mono text-xs font-bold text-[#A9382A] focus:outline-none"
-                    title="Valor em R$ do desconto financeiro / custo de capital"
+                    title="Valor em R$ do desconto financeiro / custo de antecipação"
                   />
                 </div>
               </div>
@@ -938,7 +938,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
               </tr>
               <tr className="hover:bg-[#E9F0F0]/50 bg-amber-50/40">
                 <td className="py-2.5 px-4 font-medium text-[#9A6410]">
-                  (−) Desconto Financeiro / Custo de Capital ({nf(custoCapitalMensalPct, 1)}% a.m.)
+                  (−) Desconto Financeiro / Custo de Antecipação ({nf(custoCapitalMensalPct, 1)}% a.m.)
                 </td>
                 <td className="py-2.5 px-4 text-right font-mono text-[#7A9296]">R$ 0,00</td>
                 <td className="py-2.5 px-4 text-right font-mono font-semibold text-[#A9382A]">
