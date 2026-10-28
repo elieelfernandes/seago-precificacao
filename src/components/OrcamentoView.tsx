@@ -56,6 +56,8 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
   const [acrescimoPrazoKg, setAcrescimoPrazoKg] = useState<number>(2.0); // Em média R$ 2,00 a mais que à vista
   const [precoPrazoKg, setPrecoPrazoKg] = useState<number>(28.5);
   const [diasPrazo, setDiasPrazo] = useState<number>(30);
+  const [custoCapitalMensalPct, setCustoCapitalMensalPct] = useState<number>(2.0); // Custo de capital (% a.m.)
+  const [descontoFinanceiroManual, setDescontoFinanceiroManual] = useState<number | null>(null);
   const [modoVisualizacao, setModoVisualizacao] = useState<'comparativo' | 'cliente'>('comparativo');
 
   // Carrega dados de uma carga real quando selecionada como base
@@ -153,12 +155,31 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
   const lucroKgVista = qtdVendida > 0 ? lucroVista / qtdVendida : 0;
   const roiVista = custoTotalOperacao > 0 ? lucroVista / custoTotalOperacao : 0;
 
-  // Resultados da Operação: Cenário A PRAZO
+  // Resultados da Operação: Cenário A PRAZO (Com Desconto Financeiro / Custo de Capital)
   const faturamentoPrazo = qtdVendida * precoPrazoKg;
-  const lucroPrazo = faturamentoPrazo - custoTotalOperacao;
+  const taxaCustoCapitalPeriodo = (custoCapitalMensalPct / 100) * mesesPrazo;
+  const descontoFinanceiro =
+    descontoFinanceiroManual !== null
+      ? descontoFinanceiroManual
+      : Number((faturamentoPrazo * taxaCustoCapitalPeriodo).toFixed(2));
+  const lucroPrazoBruto = faturamentoPrazo - custoTotalOperacao;
+  const lucroPrazo = faturamentoPrazo - custoTotalOperacao - descontoFinanceiro;
   const margemPrazo = faturamentoPrazo > 0 ? lucroPrazo / faturamentoPrazo : 0;
   const lucroKgPrazo = qtdVendida > 0 ? lucroPrazo / qtdVendida : 0;
   const roiPrazo = custoTotalOperacao > 0 ? lucroPrazo / custoTotalOperacao : 0;
+
+  const handleChangeCustoCapitalPct = (novaTaxaMensal: number) => {
+    setDescontoFinanceiroManual(null);
+    setCustoCapitalMensalPct(novaTaxaMensal);
+  };
+
+  const handleChangeDescontoFinanceiroRs = (novoValorRs: number) => {
+    setDescontoFinanceiroManual(novoValorRs);
+    if (faturamentoPrazo > 0 && mesesPrazo > 0) {
+      const pctPeriodo = (novoValorRs / faturamentoPrazo) * 100;
+      setCustoCapitalMensalPct(Number((pctPeriodo / mesesPrazo).toFixed(2)));
+    }
+  };
 
   // Diferença total em R$ na carga (Economia do cliente à vista / Ganho financeiro a prazo)
   const diferencaTotalCarga = faturamentoPrazo - faturamentoVista;
@@ -592,7 +613,7 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
           </div>
         </div>
 
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-[11px] font-semibold uppercase text-[#7A9296] mb-1">
               Qtd Comprada (kg)
@@ -674,6 +695,29 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
             </div>
             <span className="block text-[11px] text-[#7A9296] mt-1 font-mono">
               Ganho enxarque: <b>+{nf(enxarqueTotal, 0)} kg</b>
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold uppercase text-[#9A6410] mb-1">
+              Custo de Capital (% a.m.)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={custoCapitalMensalPct}
+                onChange={(e) => handleChangeCustoCapitalPct(Number(e.target.value) || 0)}
+                className="w-full pr-12 p-2.5 border-2 border-[#9A6410]/40 rounded-lg text-sm font-mono font-bold text-[#9A6410] bg-amber-50/30 focus:outline-none focus:border-[#9A6410]"
+                title="Taxa mensal de custo de capital / antecipação para venda a prazo"
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-mono font-semibold text-[#9A6410]">
+                % a.m.
+              </span>
+            </div>
+            <span className="block text-[11px] text-[#9A6410] mt-1 font-mono">
+              Desc. Fin. ({diasPrazo}d): <b>{brl0(descontoFinanceiro)}</b>
             </span>
           </div>
 
@@ -805,8 +849,46 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
                 <span className="text-[#4C666A]">(−) Custos Indiretos (CIF):</span>
                 <span className="font-mono text-[#A9382A]">− {brl(cifTotalSimulado)}</span>
               </div>
+              <div className="flex items-center justify-between gap-2 bg-amber-50/80 border border-[#9A6410]/25 rounded-lg px-2.5 py-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[#9A6410] font-semibold">
+                    (−) Desconto Financeiro (Custo Capital):
+                  </span>
+                  <div className="inline-flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={custoCapitalMensalPct}
+                      onChange={(e) => handleChangeCustoCapitalPct(Number(e.target.value) || 0)}
+                      className="w-14 px-1.5 py-0.5 bg-white border border-[#9A6410]/40 rounded text-right font-mono text-xs font-bold text-[#9A6410] focus:outline-none"
+                      title="Taxa de custo de capital (% ao mês)"
+                    />
+                    <span className="text-[11px] font-mono text-[#9A6410]">% a.m.</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-mono text-[#A9382A] font-semibold">− R$</span>
+                  <input
+                    type="number"
+                    step="50"
+                    min="0"
+                    value={descontoFinanceiro}
+                    onChange={(e) => handleChangeDescontoFinanceiroRs(Number(e.target.value) || 0)}
+                    className="w-24 px-1.5 py-0.5 bg-white border border-[#A9382A]/30 rounded text-right font-mono text-xs font-bold text-[#A9382A] focus:outline-none"
+                    title="Valor em R$ do desconto financeiro / custo de capital"
+                  />
+                </div>
+              </div>
               <div className="pt-2 border-t border-[#D2E0E0] flex justify-between font-bold text-sm">
-                <span className="text-[#0F262A]">(=) Lucro Líquido da Carga (A Prazo):</span>
+                <span className="text-[#0F262A]">
+                  (=) Lucro Líquido da Carga (A Prazo):
+                  {descontoFinanceiro > 0 && (
+                    <span className="block text-[11px] font-normal text-[#7A9296]">
+                      Sem desc. financeiro: {brl(lucroPrazoBruto)}
+                    </span>
+                  )}
+                </span>
                 <span className={`font-mono ${lucroPrazo >= 0 ? 'text-[#0B6E78]' : 'text-[#A9382A]'}`}>
                   {brl(lucroPrazo)}
                 </span>
@@ -853,6 +935,18 @@ export const OrcamentoView: React.FC<OrcamentoViewProps> = ({
                 <td className="py-2.5 px-4 text-right font-mono text-[#A9382A]">{brl(custoTotalOperacao)}</td>
                 <td className="py-2.5 px-4 text-right font-mono text-[#A9382A]">{brl(custoTotalOperacao)}</td>
                 <td className="py-2.5 px-4 text-right font-mono text-[#7A9296]">{brl(custoPorKgVendido)}/kg vendido</td>
+              </tr>
+              <tr className="hover:bg-[#E9F0F0]/50 bg-amber-50/40">
+                <td className="py-2.5 px-4 font-medium text-[#9A6410]">
+                  (−) Desconto Financeiro / Custo de Capital ({nf(custoCapitalMensalPct, 1)}% a.m.)
+                </td>
+                <td className="py-2.5 px-4 text-right font-mono text-[#7A9296]">R$ 0,00</td>
+                <td className="py-2.5 px-4 text-right font-mono font-semibold text-[#A9382A]">
+                  − {brl(descontoFinanceiro)}
+                </td>
+                <td className="py-2.5 px-4 text-right font-mono text-[#9A6410]">
+                  −{brl(qtdVendida > 0 ? descontoFinanceiro / qtdVendida : 0)}/kg vendido
+                </td>
               </tr>
               <tr className="hover:bg-[#E9F0F0]/50 bg-[#E9F0F0]/30 font-semibold">
                 <td className="py-3 px-4 text-[#0F262A]">Lucro Operacional da Carga</td>
