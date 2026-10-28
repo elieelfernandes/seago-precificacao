@@ -3,8 +3,8 @@ import { Database, ShieldCheck, Loader2 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface HeaderProps {
-  activeTab: 'revisao' | 'mp' | 'cif' | 'param';
-  setActiveTab: (tab: 'revisao' | 'mp' | 'cif' | 'param') => void;
+  activeTab: 'revisao' | 'orcamento' | 'mp' | 'cif' | 'param';
+  setActiveTab: (tab: 'revisao' | 'orcamento' | 'mp' | 'cif' | 'param') => void;
   fonte: 'supabase' | 'local';
   isSyncing?: boolean;
 }
@@ -62,6 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="flex gap-1 overflow-x-auto pt-1 -mb-px">
           {[
             { id: 'revisao', label: 'Resultado Operacional' },
+            { id: 'orcamento', label: 'Orçamento (Vista / Prazo)' },
             { id: 'mp', label: 'Matéria-prima' },
             { id: 'cif', label: 'CIF (Custos Indiretos)' },
             { id: 'param', label: 'Parâmetros & Dados' },

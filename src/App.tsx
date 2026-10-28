@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { RevisaoView } from './components/RevisaoView';
+import { OrcamentoView } from './components/OrcamentoView';
 import { MateriaPrimaView } from './components/MateriaPrimaView';
 import { CifView } from './components/CifView';
 import { ParametrosView } from './components/ParametrosView';
@@ -25,7 +26,7 @@ import { getCargas } from './lib/calculations';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'revisao' | 'mp' | 'cif' | 'param'>('revisao');
+  const [activeTab, setActiveTab] = useState<'revisao' | 'orcamento' | 'mp' | 'cif' | 'param'>('revisao');
   const [cargaSelecionada, setCargaSelecionada] = useState<number | 'TOTAL'>('TOTAL');
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [cif, setCif] = useState<CifLancamento[]>([]);
@@ -321,6 +322,15 @@ export function App() {
             parametros={parametros}
             cargaSelecionada={cargaSelecionada}
             setCargaSelecionada={setCargaSelecionada}
+          />
+        )}
+
+        {activeTab === 'orcamento' && (
+          <OrcamentoView
+            lotes={lotes}
+            cif={cif}
+            parametros={parametros}
+            cargaSelecionada={cargaSelecionada}
           />
         )}
 
