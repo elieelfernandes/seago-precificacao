@@ -2,25 +2,37 @@ name: Keep Supabase Database Active
 
 on:
   schedule:
-    # Executa automaticamente a cada 3 dias às 12:00 UTC (09:00 BRT) para evitar pausa por inatividade no plano gratuito
-    - cron: '0 12 */3 * *'
+    # Executa 2x por dia (a cada 12 horas) para garantir atividade constante de leitura e escrita no PostgreSQL
+    - cron: '0 8,20 * * *'
   workflow_dispatch:
 
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping & Touch Supabase Database
         run: |
           SUPABASE_URL="https://snxwgmgrdzcgtefmkqel.supabase.co"
           SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNueHdnbWdyZHpjZ3RlZm1rcWVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMzk4OTYsImV4cCI6MjEwNjgxNTg5Nn0.rERM_vjFGMRWMBmO93aKq2LWvpA9M5q9CAnSlBZ2_C0"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SUPABASE_URL}/rest/v1/parametros?select=id&limit=1" \
+
+          # 1. Leitura na tabela de cargas e parametros
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SUPABASE_URL}/rest/v1/parametros?select=id,kg_caixa&limit=1" \
             -H "apikey: ${SUPABASE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_KEY}")
-          echo "Supabase HTTP Status: $STATUS"
+          echo "Read HTTP Status: $STATUS"
+
+          # 2. Escrita leve (atualiza updated_at) para registrar atividade real no WAL do PostgreSQL
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          WRITE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "${SUPABASE_URL}/rest/v1/parametros?kg_caixa=gt.0" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"updated_at\": \"${NOW}\"}")
+          echo "Write HTTP Status: $WRITE_STATUS"
+
           if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]; then
-            echo "✅ Banco de dados ativo e respondendo!"
+            echo "✅ Banco de dados ativo e atividade de leitura/escrita registrada!"
           else
-            echo "⚠️ Banco respondeu com status $STATUS"
+            echo "⚠️ Banco respondeu com status $STATUS (verifique se está pausado no painel do Supabase)"
             exit 1
           fi
